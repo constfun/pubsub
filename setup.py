@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-DESCRIPTION = "Thread safe PubSub component with Django Signals like API. Built using ØMQ (zeromq) sockets."
+DESCRIPTION = "Thread safe PubSub component with Qt Signals like API. Built using ØMQ (zeromq) sockets."
 
 LONG_DESCRIPTION = None
 try:

@@ -32,7 +32,7 @@ fwd = ForwarderDevice()
 fwd.start()
 time.sleep(1)
 
-class PubSubHub():
+class Hub():
     _hubs_for_threads = {}
 
     @staticmethod
@@ -40,9 +40,9 @@ class PubSubHub():
         ident = threading.current_thread().ident
         assert ident is not None
 
-        hubs = PubSubHub._hubs_for_threads
+        hubs = Hub._hubs_for_threads
         if ident not in hubs:
-            hubs[ident] = PubSubHub()
+            hubs[ident] = Hub()
 
         return hubs[ident]
 
@@ -58,10 +58,10 @@ class PubSubHub():
 
         self._receivers = {}
 
-    def send(self, topic, data):
+    def send_message(self, topic, data):
         self._out_socket.send_json([topic, data])
 
-    def get_fd(self):
+    def fileno(self):
         return self._in_socket.FD
 
     def receive_messages(self):
@@ -69,6 +69,9 @@ class PubSubHub():
             while True:
                 topic, data = self._in_socket.recv_json(flags=zmq.NOBLOCK)
                 assert isinstance(data, dict)
+
+                if topic not in self._receivers:
+                    continue
 
                 for receiver_ref in self._receivers[topic]:
                     receiver_ref()(**data)
@@ -88,21 +91,14 @@ class PubSubHub():
         for topic_receivers in self._receivers.itervalues():
             topic_receivers.remove(receiver_ref)
 
-
-def receiver(message):
-    assert isinstance(message, Message)
-
-    def receiver_decorator(func):
-        hub = PubSubHub.instance()
-        hub.connect_receiver(message.topic, func)
-        return func
-
-    return receiver_decorator
-
 class Message:
     def __init__(self, topic):
         self.topic = topic
 
+    def subscribe(self, receiver):
+        hub = Hub.instance()
+        hub.connect_receiver(self.topic, receiver)
+
     def send(self, **kwargs):
-        hub = PubSubHub.instance()
-        hub.send(self.topic, data=kwargs)
+        hub = Hub.instance()
+        hub.send_message(self.topic, data=kwargs)

@@ -1,1 +1,1 @@
-from core import PubSubHub, Message, receiver
+from core import Hub, Message
