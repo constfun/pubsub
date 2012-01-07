@@ -89,7 +89,8 @@ class Hub():
 
     def _receiver_deleted(self, receiver_ref):
         for topic_receivers in self._receivers.itervalues():
-            topic_receivers.remove(receiver_ref)
+            if receiver_ref in topic_receivers:
+                topic_receivers.remove(receiver_ref)
 
 class Message:
     def __init__(self, topic):
