@@ -1,1 +1,2 @@
-from core import Hub, Message
+from core import ZmqHub, Message
+from rabbit import RabbitHub

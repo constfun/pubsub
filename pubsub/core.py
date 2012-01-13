@@ -1,5 +1,5 @@
-import threading
 import time
+from threading import Thread
 import zmq
 from saferef import safeRef
 
@@ -7,7 +7,7 @@ from saferef import safeRef
 # This way we can just 'connect' to this device whenever we need to subscribe to or send a signal.
 # see: http://lists.zeromq.org/pipermail/zeromq-dev/2010-July/004411.html
 # see: http://lists.zeromq.org/pipermail/zeromq-dev/2010-July/004399.html
-class ForwarderDevice(threading.Thread):
+class ForwarderDevice(Thread):
     daemon = True
     #in_address = 'inproc://fwdin'
     #out_address = 'inproc://fwdout'
@@ -32,20 +32,7 @@ fwd = ForwarderDevice()
 fwd.start()
 time.sleep(1)
 
-class Hub():
-    _hubs_for_threads = {}
-
-    @staticmethod
-    def instance():
-        ident = threading.current_thread().ident
-        assert ident is not None
-
-        hubs = Hub._hubs_for_threads
-        if ident not in hubs:
-            hubs[ident] = Hub()
-
-        return hubs[ident]
-
+class ZmqHub():
     def __init__(self, context=None):
         context = context or zmq.Context.instance()
 
@@ -58,8 +45,8 @@ class Hub():
 
         self._receivers = {}
 
-    def send_message(self, topic, data):
-        self._out_socket.send_json([topic, data])
+    def send(self, message):
+        self._out_socket.send_json(message)
 
     def fileno(self):
         return self._in_socket.FD
@@ -79,13 +66,13 @@ class Hub():
         except zmq.ZMQError, ex:
             if not ex.errno == zmq.EAGAIN: raise ex
 
-    def connect_receiver(self, topic, receiver):
+    def subscribe(self, message, receiver):
         assert callable(receiver)
 
-        if topic not in self._receivers:
-            self._receivers[topic] = []
+        if message.topic not in self._receivers:
+            self._receivers[message.topic] = []
 
-        self._receivers[topic].append(safeRef(receiver, self._receiver_deleted))
+        self._receivers[message.topic].append(safeRef(receiver, self._receiver_deleted))
 
     def _receiver_deleted(self, receiver_ref):
         for topic_receivers in self._receivers.itervalues():
@@ -96,10 +83,5 @@ class Message:
     def __init__(self, topic):
         self.topic = topic
 
-    def subscribe(self, receiver):
-        hub = Hub.instance()
-        hub.connect_receiver(self.topic, receiver)
-
-    def send(self, **kwargs):
-        hub = Hub.instance()
-        hub.send_message(self.topic, data=kwargs)
+    def __call__(self, **kwargs):
+        return (self.topic, kwargs)
