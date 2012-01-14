@@ -1,4 +1,6 @@
+import sys
 import time
+import traceback
 from threading import Thread
 import zmq
 from saferef import safeRef
@@ -46,6 +48,8 @@ class ZmqHub():
         self._receivers = {}
 
     def send(self, message):
+        if isinstance(message, Message):
+            message = message()
         self._out_socket.send_json(message)
 
     def fileno(self):
@@ -61,7 +65,13 @@ class ZmqHub():
                     continue
 
                 for receiver_ref in self._receivers[topic]:
-                    receiver_ref()(**data)
+                    try:
+                        receiver_ref()(**data)
+                    except:
+                        # TODO: log instead of print
+                        ex_type, ex_val, tb = sys.exc_info()
+                        traceback.print_tb(tb)
+                        print 'Error in zmq message callback. Skipping. ex_type: %s ex_val: %s' % (ex_type, ex_val)
 
         except zmq.ZMQError, ex:
             if not ex.errno == zmq.EAGAIN: raise ex

@@ -6,19 +6,22 @@ from pubsub import ZmqHub, Message
 from tbclient.common import config
 
 class RabbitHub():
-    def __init__(self, exchange, routing_key):
+    def __init__(self, exchange):
+        self.exchange = exchange
         self._conn = pika.BlockingConnection(pika.ConnectionParameters(host='tinybullet.com'))
-
-        self._channel = self._conn.channel()
-
-        self._channel.exchange_declare(exchange=exchange, type='topic')
-        queue = self._channel.queue_declare(exclusive=True).method.queue
-        self._channel.queue_bind(exchange=exchange, queue=queue, routing_key=routing_key)
-
-        self._channel.basic_consume(self.message_received, queue=queue, no_ack=True)
 
         self._receivers = {}
         self.zmq_hub = ZmqHub()
+
+    def set_routing_key(self, routing_key):
+        self._channel = self._conn.channel()
+
+        self._channel.exchange_declare(exchange=self.exchange, type='topic')
+        queue = self._channel.queue_declare(exclusive=True).method.queue
+        self._channel.queue_bind(exchange=self.exchange, queue=queue, routing_key=routing_key)
+
+        self._channel.basic_consume(self.message_received, queue=queue, no_ack=True)
+
 
     def message_received(self, channel, method, properties, body):
         routing_key = method.routing_key
