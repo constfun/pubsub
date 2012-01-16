@@ -59,7 +59,7 @@ class Message:
     def __call__(self, **payload):
         return (self.topic, payload)
 
-    #... and also unpacking of 'an_emptty_message'
+    #... and also unpacking of 'an_empty_message'
     def __iter__(self):
-        for item in [self.topic, None]:
+        for item in (self.topic, {}):
             yield item
