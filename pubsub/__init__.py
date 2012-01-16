@@ -1,2 +1,3 @@
-from core import ZmqHub, Message
-from rabbit import RabbitHub
+from core import Message
+from zmqhub import ZmqHub
+from rabbithub import RabbitHub
