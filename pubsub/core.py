@@ -13,7 +13,7 @@ class Hub(object):
 
     def Rx(self, topic, payload):
         for hub in self._forward_to_hubs:
-            hub.Rx(topic=topic, payload=payload)
+            hub.Tx(topic=topic, payload=payload)
 
         if topic not in self._receivers:
             return
