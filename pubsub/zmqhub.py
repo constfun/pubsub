@@ -65,3 +65,9 @@ class ZmqHub(Hub):
 
     def fileno(self):
         return self._in_socket.FD
+
+    def loop(self):
+        poller = zmq.Poller()
+        poller.register(self.fileno(), flags=zmq.POLLIN)
+        while poller.poll():
+            self.receive()
